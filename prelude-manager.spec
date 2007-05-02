@@ -195,6 +195,7 @@ EOF
 %dir %{_libdir}/%{name}/filters
 %dir %{_libdir}/%{name}/reports
 %{_libdir}/%{name}/filters/idmef-criteria.so
+%{_libdir}/%{name}/filters/thresholding.so
 %{_libdir}/%{name}/reports/debug.so
 %{_libdir}/%{name}/reports/relaying.so
 %{_libdir}/%{name}/reports/textmod.so
