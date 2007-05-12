@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        0.9.8
-Release:        %mkrel 1
+Release:        %mkrel 2
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
 Group:          System/Servers
@@ -171,6 +171,7 @@ then do something like the following:
 %{_bindir}/mysqladmin create prelude
 echo "GRANT ALL PRIVILEGES ON prelude.* TO prelude@'localhost' IDENTIFIED BY 'prelude';" | %{_bindir}/mysql -h localhost
 %{_bindir}/mysql -h localhost -u prelude prelude -p < %{_datadir}/libpreludedb/classic/mysql.sql
+%{_bindir}/mysql -h localhost -u prelude prelude -p < %{_datadir}/libpreludedb/classic/addIndices.sql
 EOF
 
 %post
