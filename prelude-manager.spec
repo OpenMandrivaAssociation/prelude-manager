@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        0.9.8
-Release:        %mkrel 2
+Release:        %mkrel 3
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
 Group:          System/Servers
@@ -23,7 +23,7 @@ BuildRequires:  libpreludedb-devel
 BuildRequires:  libxml2-devel
 BuildRequires:  tcp_wrappers-devel
 Obsoletes:      prelude >= 0.4.2
-Obsoletes:      prelude-doc
+Obsoletes:      prelude-doc <= %{version}
 Provides:       prelude = %{version}-%{release}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
@@ -108,18 +108,15 @@ Plugins.
 %{__perl} -pi -e "s|/lib\b|/%{_lib}|g" configure.in
 
 %build
-export WANT_AUTOCONF_2_5=1
 %{_bindir}/autoreconf
-
-%{configure2_5x} \
-    --enable-static \
-    --enable-shared \
-    --localstatedir=%{_var} \
-    --with-libprelude-prefix=%{_prefix} \
-    --with-libgnutls-prefix=%{_prefix} \
-    --with-libpreludedb-prefix=%{_prefix} \
-    --with-xml-prefix=%{_prefix} \
-    --with-xml-exec-prefix=%{_prefix} 
+%{configure2_5x} --enable-static \
+                 --enable-shared \
+                 --localstatedir=%{_var} \
+                 --with-libprelude-prefix=%{_prefix} \
+                 --with-libgnutls-prefix=%{_prefix} \
+                 --with-libpreludedb-prefix=%{_prefix} \
+                 --with-xml-prefix=%{_prefix} \
+                 --with-xml-exec-prefix=%{_prefix} 
 
 # fix linkage to the shared wrapper libs
 %{_bindir}/find -name "Makefile" | %{_bindir}/xargs %{__perl} -pi -e "s|^LIBWRAP_LIBS.*|LIBWRAP_LIBS = -L%{_libdir} -lwrap -lnsl|g"
@@ -130,10 +127,12 @@ export WANT_AUTOCONF_2_5=1
 %install
 %{__rm} -rf %{buildroot}
 
-%{__mkdir_p} %{buildroot}%{_libdir}/%{name}/decodes
 %{__mkdir_p} %{buildroot}%{_var}/run/%{name}
-
+%{__mkdir_p} %{buildroot}%{_localstatedir}/%{name}
 %{makeinstall_std}
+
+%{__mkdir_p} %{buildroot}%{_sbindir}
+%{__mv} %{buildroot}%{_bindir}/%{name} %{buildroot}%{_sbindir}/%{name}
 
 %{_bindir}/chrpath -d %{buildroot}%{_libdir}/%{name}/reports/db.so 
 
@@ -144,7 +143,7 @@ export WANT_AUTOCONF_2_5=1
 # fix logrotate stuff
 %{__mkdir_p} %{buildroot}%{_sysconfdir}/logrotate.d
 %{__cat} > %{buildroot}%{_sysconfdir}/logrotate.d/%{name} << EOF
-%{_logdir}/%{name}/prelude.log {
+%{_logdir}/%{name}/prelude.log %{_logdir}/%{name}/prelude-xml.log {
     missingok
     postrotate
         [ -f %{_var}/lock/subsys/%{name} ] && %{_initrddir}/%{name} restart
@@ -155,6 +154,7 @@ EOF
 # make the logdir
 %{__mkdir_p} %{buildroot}%{_logdir}/%{name}
 /bin/touch %{buildroot}%{_logdir}/%{name}/prelude.log
+/bin/touch %{buildroot}%{_logdir}/%{name}/prelude-xml.log
 
 # fix a README.urpmi
 %{__cat} > README.urpmi << EOF
@@ -162,7 +162,7 @@ In order to start the prelude-manager service you must configure
 it first. This is not done automatically. To make a basic file 
 configuration please run:
 
-prelude-adduser add prelude-manager --uid 0 --gid 0
+prelude-adduser add prelude-manager --uid prelude-manager --gid prelude-manager
 
 Additionally, if you want database support (required for prewikka),
 you should install a preludedb package such as preludedb-mysql and
@@ -175,56 +175,64 @@ echo "GRANT ALL PRIVILEGES ON prelude.* TO prelude@'localhost' IDENTIFIED BY 'pr
 EOF
 
 %post
+%create_ghostfile %{_logdir}/prelude-manager/prelude.log prelude-manager prelude-manager 640
+%create_ghostfile %{_logdir}/prelude-manager/prelude-xml.log prelude-manager prelude-manager 640
 %_post_service %{name}
-/bin/touch %{_logdir}/prelude-manager/prelude.log
 
 %preun
 %_preun_service %{name}
+
+%pre
+%_pre_useradd prelude-manager %{_localstatedir}/%{name} /bin/false
+
+%postun
+%_postun_userdel prelude-manager
 
 %clean
 %{__rm} -rf %{buildroot}
 
 %files
-%defattr(-,root,root)
+%defattr(0644,root,root,0755)
 %doc AUTHORS COPYING ChangeLog HACKING.README NEWS README README.urpmi
-%attr(0640,root,root) %config(noreplace) %{_sysconfdir}/%{name}/*.conf
 %attr(0755,root,root) %{_initrddir}/%{name}
-%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
-%{_bindir}/%{name}
+%attr(0755,root,root) %{_sbindir}/%{name}
 %dir %{_libdir}/%{name}
 %dir %{_libdir}/%{name}/decodes
 %dir %{_libdir}/%{name}/filters
 %dir %{_libdir}/%{name}/reports
-%{_libdir}/%{name}/filters/idmef-criteria.so
-%{_libdir}/%{name}/filters/thresholding.so
-%{_libdir}/%{name}/reports/debug.so
-%{_libdir}/%{name}/reports/relaying.so
-%{_libdir}/%{name}/reports/textmod.so
-%{_libdir}/%{name}/decodes/normalize.so
-%attr(0750,root,root) %dir %{_var}/spool/%{name}
-%dir %{_logdir}/%{name}
-%dir %{_var}/run/%{name}
-%ghost %attr(0664,root,root) %{_logdir}/%{name}/prelude.log
+%attr(0755,root,root) %{_libdir}/%{name}/filters/idmef-criteria.so
+%attr(0755,root,root) %{_libdir}/%{name}/filters/thresholding.so
+%attr(0755,root,root) %{_libdir}/%{name}/reports/debug.so
+%attr(0755,root,root) %{_libdir}/%{name}/reports/relaying.so
+%attr(0755,root,root) %{_libdir}/%{name}/reports/textmod.so
+%attr(0755,root,root) %{_libdir}/%{name}/decodes/normalize.so
+%attr(0750,prelude-manager,prelude-manager) %dir %{_var}/spool/%{name}
+%dir %attr(0750,prelude-manager,prelude-manager) %{_logdir}/%{name}
+%dir %attr(0750,prelude-manager,prelude-manager) %{_var}/run/%{name}
+%ghost %attr(0640,prelude-manager,prelude-manager) %{_logdir}/%{name}/prelude.log
+%ghost %attr(0640,prelude-manager,prelude-manager) %{_logdir}/%{name}/prelude-xml.log
+%dir %attr(0750,prelude-manager,prelude-manager) %{_localstatedir}/%{name}
+%dir %{_sysconfdir}/%{name}
+%attr(0640,root,prelude-manager) %config(noreplace) %{_sysconfdir}/%{name}/*.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 
 %files db-plugin
-%defattr(-,root,root)
-%{_libdir}/%{name}/reports/db.so
+%defattr(0644,root,root,0755)
+%attr(0755,root,root) %{_libdir}/%{name}/reports/db.so
 
 %files xml-plugin
-%defattr(-,root,root)
-%{_libdir}/%{name}/reports/xmlmod.so
+%defattr(0644,root,root,0755)
+%attr(0755,root,root) %{_libdir}/%{name}/reports/xmlmod.so
 %{_datadir}/%{name}/xmlmod/idmef-message.dtd
 
 %files devel
-%defattr(-,root,root)
+%defattr(0644,root,root,0755)
 %doc AUTHORS COPYING ChangeLog HACKING.README NEWS README
 %dir %{_includedir}/%{name}
 %{_includedir}/%{name}/*.h
 %{_libdir}/%{name}/filters/*.a
-%{_libdir}/%{name}/filters/*.la
+%attr(0755,root,root) %{_libdir}/%{name}/filters/*.la
 %{_libdir}/%{name}/reports/*.a
-%{_libdir}/%{name}/reports/*.la
+%attr(0755,root,root) %{_libdir}/%{name}/reports/*.la
 %{_libdir}/%{name}/decodes/normalize.a
-%{_libdir}/%{name}/decodes/normalize.la
-
-
+%attr(0755,root,root) %{_libdir}/%{name}/decodes/normalize.la
