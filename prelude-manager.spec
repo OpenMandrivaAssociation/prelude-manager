@@ -135,8 +135,8 @@ Plugins.
 
 %{__mkdir_p} %{buildroot}%{_var}/run/%{name}
 %{__mkdir_p} %{buildroot}%{_localstatedir}/%{name}
-
 %{__mkdir_p} %{buildroot}%{_sysconfdir}/prelude/profile/%{name}
+%{__mkdir_p} %{buildroot}%{_var}/spool/%{name}/scheduler
 
 %{__mkdir_p} %{buildroot}%{_sbindir}
 %{__mv} %{buildroot}%{_bindir}/%{name} %{buildroot}%{_sbindir}/%{name}
@@ -216,6 +216,7 @@ EOF
 %attr(0755,root,root) %{_libdir}/%{name}/reports/textmod.so
 %attr(0755,root,root) %{_libdir}/%{name}/decodes/normalize.so
 %attr(0750,prelude-manager,prelude-manager) %dir %{_var}/spool/%{name}
+%attr(0750,prelude-manager,prelude-manager) %dir %{_var}/spool/%{name}/scheduler
 %dir %attr(0750,prelude-manager,prelude-manager) %{_logdir}/%{name}
 %dir %attr(0750,prelude-manager,prelude-manager) %{_var}/run/%{name}
 %ghost %attr(0640,prelude-manager,prelude-manager) %{_logdir}/%{name}/prelude.log
