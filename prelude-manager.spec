@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        0.9.8
-Release:        %mkrel 3
+Release:        %mkrel 4
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
 Group:          System/Servers
@@ -12,6 +12,8 @@ Source3:        http://www.prelude-ids.org/download/releases/%{name}-%{version}.
 Source4:        prelude-manager.init
 Requires:       prelude-tools
 Requires(post): rpm-helper
+Requires(postun): rpm-helper
+Requires(pre):  rpm-helper
 Requires(preun): rpm-helper
 Requires:       tcp_wrappers
 BuildRequires:  automake1.8
@@ -162,7 +164,7 @@ In order to start the prelude-manager service you must configure
 it first. This is not done automatically. To make a basic file 
 configuration please run:
 
-prelude-adduser add prelude-manager --uid prelude-manager --gid prelude-manager
+/usr/bin/prelude-adduser add prelude-manager --uid prelude-manager --gid prelude-manager
 
 Additionally, if you want database support (required for prewikka),
 you should install a preludedb package such as preludedb-mysql and
