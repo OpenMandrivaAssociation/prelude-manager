@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        0.9.8
-Release:        %mkrel 4
+Release:        %mkrel 5
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
 Group:          System/Servers
@@ -24,10 +24,10 @@ BuildRequires:  libprelude-devel
 BuildRequires:  libpreludedb-devel
 BuildRequires:  libxml2-devel
 BuildRequires:  tcp_wrappers-devel
-Obsoletes:      prelude >= 0.4.2
-Obsoletes:      prelude-doc <= %{version}
+Obsoletes:      prelude-doc <= %{version}-%{release}
+Obsoletes:      prelude < %{version}-%{release}
 Provides:       prelude = %{version}-%{release}
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
 Prelude Manager is the main program of the Prelude Hybrid IDS
@@ -45,7 +45,7 @@ and logging.
 %package        db-plugin
 Summary:        Database report plugin for Prelude IDS Manager
 Group:          System/Servers
-Requires:       %{name} = %{version}
+Requires:       %{name} = %{version}-%{release}
 
 %description db-plugin
 Prelude Manager is the main program of the Prelude Hybrid IDS
@@ -65,7 +65,7 @@ This plugin authorize prelude-manager to write to database
 %package        xml-plugin
 Summary:        XML report plugin for Prelude IDS Manager
 Group:          System/Servers
-Requires:       %{name} = %{version}
+Requires:       %{name} = %{version}-%{release}
 
 %description xml-plugin
 Prelude Manager is the main program of the Prelude Hybrid IDS
@@ -86,7 +86,9 @@ Manager.
 %package devel
 Summary:        Libraries, includes, etc. to develop Prelude IDS Manager plugins
 Group:          Development/C
-Requires:       %{name} = %{version}
+Requires:       %{name} = %{version}-%{release}
+Requires:       %{name}-db-plugin = %{version}-%{release}
+Requires:       %{name}-xml-plugin = %{version}-%{release}
 
 %description devel
 Prelude Manager is the main program of the Prelude Hybrid IDS
@@ -129,9 +131,12 @@ Plugins.
 %install
 %{__rm} -rf %{buildroot}
 
+%{makeinstall_std}
+
 %{__mkdir_p} %{buildroot}%{_var}/run/%{name}
 %{__mkdir_p} %{buildroot}%{_localstatedir}/%{name}
-%{makeinstall_std}
+
+%{__mkdir_p} %{buildroot}%{_sysconfdir}/prelude/profile/%{name}
 
 %{__mkdir_p} %{buildroot}%{_sbindir}
 %{__mv} %{buildroot}%{_bindir}/%{name} %{buildroot}%{_sbindir}/%{name}
@@ -179,6 +184,8 @@ EOF
 %post
 %create_ghostfile %{_logdir}/prelude-manager/prelude.log prelude-manager prelude-manager 640
 %create_ghostfile %{_logdir}/prelude-manager/prelude-xml.log prelude-manager prelude-manager 640
+[ ! -f %{_sysconfdir}/prelude/profile/%{name}/analyzerid ] && [ -x %{_bindir}/prelude-adduser ] && \
+  %{_bindir}/prelude-adduser add prelude-manager --uid prelude-manager --gid prelude-manager >/dev/null 2>&1 || :
 %_post_service %{name}
 
 %preun
@@ -214,6 +221,7 @@ EOF
 %ghost %attr(0640,prelude-manager,prelude-manager) %{_logdir}/%{name}/prelude.log
 %ghost %attr(0640,prelude-manager,prelude-manager) %{_logdir}/%{name}/prelude-xml.log
 %dir %attr(0750,prelude-manager,prelude-manager) %{_localstatedir}/%{name}
+%dir %attr(0750,prelude-manager,prelude-manager) %{_sysconfdir}/prelude/profile/%{name}
 %dir %{_sysconfdir}/%{name}
 %attr(0640,root,prelude-manager) %config(noreplace) %{_sysconfdir}/%{name}/*.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
