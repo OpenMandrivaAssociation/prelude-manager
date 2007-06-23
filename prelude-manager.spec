@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        0.9.8
-Release:        %mkrel 5
+Release:        %mkrel 6
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
 Group:          System/Servers
@@ -165,13 +165,7 @@ EOF
 
 # fix a README.urpmi
 %{__cat} > README.urpmi << EOF
-In order to start the prelude-manager service you must configure 
-it first. This is not done automatically. To make a basic file 
-configuration please run:
-
-/usr/bin/prelude-adduser add prelude-manager --uid prelude-manager --gid prelude-manager
-
-Additionally, if you want database support (required for prewikka),
+If you want database support (required for prewikka),
 you should install a preludedb package such as preludedb-mysql and
 then do something like the following:
 
@@ -185,7 +179,7 @@ EOF
 %create_ghostfile %{_logdir}/prelude-manager/prelude.log prelude-manager prelude-manager 640
 %create_ghostfile %{_logdir}/prelude-manager/prelude-xml.log prelude-manager prelude-manager 640
 [ ! -f %{_sysconfdir}/prelude/profile/%{name}/analyzerid ] && [ -x %{_bindir}/prelude-adduser ] && \
-  %{_bindir}/prelude-adduser add prelude-manager --uid prelude-manager --gid prelude-manager >/dev/null 2>&1 || :
+  %{_bindir}/prelude-adduser add prelude-manager --uid `%{__id} -u prelude-manager` --gid `%{__id} -g prelude-manager` >/dev/null 2>&1 || :
 %_post_service %{name}
 
 %preun
