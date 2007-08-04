@@ -1,6 +1,6 @@
 Name:           prelude-manager
-Version:        0.9.8
-Release:        %mkrel 6
+Version:        0.9.9
+Release:        %mkrel 1
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
 Group:          System/Servers
@@ -220,6 +220,7 @@ EOF
 %dir %{_sysconfdir}/%{name}
 %attr(0640,root,prelude-manager) %config(noreplace) %{_sysconfdir}/%{name}/*.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
+%{_mandir}/man1/prelude-manager.1*
 
 %files db-plugin
 %defattr(0644,root,root,0755)
