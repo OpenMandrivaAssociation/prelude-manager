@@ -1,5 +1,5 @@
 Name:           prelude-manager
-Version:        0.9.9
+Version:        0.9.10
 Release:        %mkrel 1
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
@@ -40,7 +40,7 @@ analysis. It also provides relaying capabilities for failover and
 replication. The IDMEF standard is used for alert representation.
 Support for filtering plugins allows you to hook in different
 places in the Manager to define custom criteria for alert relaying
-and logging. 
+and logging.
 
 %package        db-plugin
 Summary:        Database report plugin for Prelude IDS Manager
@@ -120,7 +120,7 @@ Plugins.
                  --with-libgnutls-prefix=%{_prefix} \
                  --with-libpreludedb-prefix=%{_prefix} \
                  --with-xml-prefix=%{_prefix} \
-                 --with-xml-exec-prefix=%{_prefix} 
+                 --with-xml-exec-prefix=%{_prefix}
 
 # fix linkage to the shared wrapper libs
 %{_bindir}/find -name "Makefile" | %{_bindir}/xargs %{__perl} -pi -e "s|^LIBWRAP_LIBS.*|LIBWRAP_LIBS = -L%{_libdir} -lwrap -lnsl|g"
@@ -141,7 +141,7 @@ Plugins.
 %{__mkdir_p} %{buildroot}%{_sbindir}
 %{__mv} %{buildroot}%{_bindir}/%{name} %{buildroot}%{_sbindir}/%{name}
 
-%{_bindir}/chrpath -d %{buildroot}%{_libdir}/%{name}/reports/db.so 
+%{_bindir}/chrpath -d %{buildroot}%{_libdir}/%{name}/reports/db.so
 
 # install init script
 %{__mkdir_p} %{buildroot}%{_initrddir}
