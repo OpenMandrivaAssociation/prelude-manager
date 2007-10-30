@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        0.9.10
-Release:        %mkrel 1
+Release:        %mkrel 2
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPL
 Group:          System/Servers
@@ -19,11 +19,11 @@ Requires:       tcp_wrappers
 BuildRequires:  automake1.8
 BuildRequires:  autoconf2.5
 BuildRequires:  chrpath
-BuildRequires:  libgnutls-devel
-BuildRequires:  libprelude-devel
-BuildRequires:  libpreludedb-devel
-BuildRequires:  libxml2-devel
+BuildRequires:  gnutls-devel
+BuildRequires:  prelude-devel
+BuildRequires:  preludedb-devel
 BuildRequires:  tcp_wrappers-devel
+BuildRequires:  libxml2-devel
 Obsoletes:      prelude-doc <= %{version}-%{release}
 Obsoletes:      prelude < %{version}-%{release}
 Provides:       prelude = %{version}-%{release}
