@@ -27,6 +27,7 @@ BuildRequires:  libxml2-devel
 Obsoletes:      prelude-doc <= %{version}-%{release}
 Obsoletes:      prelude < %{version}-%{release}
 Provides:       prelude = %{version}-%{release}
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
 Prelude Manager is the main program of the Prelude Hybrid IDS
