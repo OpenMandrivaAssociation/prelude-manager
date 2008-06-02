@@ -134,7 +134,7 @@ Plugins.
 %{makeinstall_std}
 
 %{__mkdir_p} %{buildroot}%{_var}/run/%{name}
-%{__mkdir_p} %{buildroot}%{_localstatedir}/%{name}
+%{__mkdir_p} %{buildroot}%{_localstatedir}/lib/%{name}
 %{__mkdir_p} %{buildroot}%{_sysconfdir}/prelude/profile/%{name}
 %{__mkdir_p} %{buildroot}%{_var}/spool/%{name}/scheduler
 
@@ -186,7 +186,7 @@ EOF
 %_preun_service %{name}
 
 %pre
-%_pre_useradd prelude-manager %{_localstatedir}/%{name} /bin/false
+%_pre_useradd prelude-manager %{_localstatedir}/lib/%{name} /bin/false
 
 %postun
 %_postun_userdel prelude-manager
@@ -215,7 +215,7 @@ EOF
 %dir %attr(0750,prelude-manager,prelude-manager) %{_var}/run/%{name}
 %ghost %attr(0640,prelude-manager,prelude-manager) %{_logdir}/%{name}/prelude.log
 %ghost %attr(0640,prelude-manager,prelude-manager) %{_logdir}/%{name}/prelude-xml.log
-%dir %attr(0750,prelude-manager,prelude-manager) %{_localstatedir}/%{name}
+%dir %attr(0750,prelude-manager,prelude-manager) %{_localstatedir}/lib/%{name}
 %dir %attr(0750,prelude-manager,prelude-manager) %{_sysconfdir}/prelude/profile/%{name}
 %dir %{_sysconfdir}/%{name}
 %attr(0640,root,prelude-manager) %config(noreplace) %{_sysconfdir}/%{name}/*.conf
