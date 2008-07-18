@@ -207,6 +207,7 @@ EOF
 %attr(0755,root,root) %{_libdir}/%{name}/filters/thresholding.so
 %attr(0755,root,root) %{_libdir}/%{name}/reports/debug.so
 %attr(0755,root,root) %{_libdir}/%{name}/reports/relaying.so
+%attr(0755,root,root) %{_libdir}/%{name}/reports/smtp.so
 %attr(0755,root,root) %{_libdir}/%{name}/reports/textmod.so
 %attr(0755,root,root) %{_libdir}/%{name}/decodes/normalize.so
 %attr(0750,prelude-manager,prelude-manager) %dir %{_var}/spool/%{name}
