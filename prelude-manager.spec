@@ -1,14 +1,14 @@
 Name:           prelude-manager
-Version:        0.9.11
-Release:        %mkrel 2
+Version:        0.9.14
+Release:        %mkrel 1
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPLv2+
 Group:          System/Servers
 URL:            http://www.prelude-ids.org/
-Source0:        http://www.prelude-ids.org/download/releases/%{name}-%{version}.tar.gz
-Source1:        http://www.prelude-ids.org/download/releases/%{name}-%{version}.tar.gz.sig
-Source2:        http://www.prelude-ids.org/download/releases/%{name}-%{version}.tar.gz.md5
-Source3:        http://www.prelude-ids.org/download/releases/%{name}-%{version}.txt
+Source0:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{version}.tar.gz
+Source1:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{version}.tar.gz.sig
+Source2:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{version}.tar.gz.md5
+Source3:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{version}.txt
 Source4:        prelude-manager.init
 Requires:       prelude-tools
 Requires(post): rpm-helper
