@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        0.9.14.2
-Release:        %mkrel 1
+Release:        %mkrel 2
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPLv2+
 Group:          System/Servers
@@ -10,6 +10,7 @@ Source1:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{ver
 Source2:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{version}.tar.gz.md5
 Source3:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{version}.txt
 Source4:        prelude-manager.init
+Patch0:		prelude-manager-0.9.14.2-gnutls-2.8.patch
 Requires:       prelude-tools
 Requires(post): rpm-helper
 Requires(postun): rpm-helper
@@ -108,6 +109,7 @@ Plugins.
 
 %prep
 %setup -q
+%patch0 -p0
 %{__perl} -pi -e "s|\@prefix\@%{_logdir}/|%{_logdir}/%{name}/|g" %{name}.conf*
 %{__perl} -pi -e "s|/lib\b|/%{_lib}|g" configure.in
 
@@ -117,7 +119,6 @@ Plugins.
                  --enable-shared \
                  --localstatedir=%{_var} \
                  --with-libprelude-prefix=%{_prefix} \
-                 --with-libgnutls-prefix=%{_prefix} \
                  --with-libpreludedb-prefix=%{_prefix} \
                  --with-xml-prefix=%{_prefix} \
                  --with-xml-exec-prefix=%{_prefix}
