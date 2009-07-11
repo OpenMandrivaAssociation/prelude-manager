@@ -1,6 +1,6 @@
 Name:           prelude-manager
-Version:        0.9.14.2
-Release:        %mkrel 2
+Version:        0.9.15
+Release:        %mkrel 1
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPLv2+
 Group:          System/Servers
