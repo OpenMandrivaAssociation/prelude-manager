@@ -9,7 +9,7 @@ Source0:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{ver
 Source4:        prelude-manager.init
 # They removed this code and provides it only with their "enterprise" version.
 # Sorry, but this is GPL, so we use the code from v1.0.1
-Patch0:         prelude-manager-1.0.1-mising_relaying.diff
+Patch0:         prelude-manager-1.0.1-missing_relaying.diff
 Requires:       prelude-tools
 Requires(post): rpm-helper
 Requires(postun): rpm-helper
