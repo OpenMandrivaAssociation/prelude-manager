@@ -1,20 +1,22 @@
 Name:           prelude-manager
-Version:        1.0.1
-Release:        %mkrel 2
+Version:        1.0.2
+Release:        0
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPLv2+
 Group:          System/Servers
 URL:            http://www.prelude-ids.org/
 Source0:        http://www.prelude-ids.org/download/releases/%name/%{name}-%{version}.tar.gz
 Source4:        prelude-manager.init
+# They removed this code and provides it only with their "enterprise" version.
+# Sorry, but this is GPL, so we use the code from v1.0.1
+Patch0:         prelude-manager-1.0.1-mising_relaying.diff
 Requires:       prelude-tools
 Requires(post): rpm-helper
 Requires(postun): rpm-helper
 Requires(pre):  rpm-helper
 Requires(preun): rpm-helper
 Requires:       tcp_wrappers
-BuildRequires:  automake1.8
-BuildRequires:  autoconf2.5
+BuildRequires:  autoconf automake libtool
 BuildRequires:  chrpath
 BuildRequires:  gnutls-devel
 BuildRequires:  prelude-devel
@@ -24,7 +26,6 @@ BuildRequires:  libxml2-devel
 Obsoletes:      prelude-doc <= %{version}-%{release}
 Obsoletes:      prelude < %{version}-%{release}
 Provides:       prelude = %{version}-%{release}
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
 Prelude Manager is the main program of the Prelude Hybrid IDS
@@ -104,48 +105,52 @@ Install this package if you want to build Prelude IDS Manager
 Plugins.
 
 %prep
+
 %setup -q
+%patch0 -p1
 %{__perl} -pi -e "s|\@prefix\@%{_logdir}/|%{_logdir}/%{name}/|g" %{name}.conf*
 %{__perl} -pi -e "s|/lib\b|/%{_lib}|g" configure.in
 
+cp %{SOURCE4} prelude-manager.init
+
 %build
-%{_bindir}/autoreconf
-%{configure2_5x} --enable-static \
-                 --enable-shared \
-                 --localstatedir=%{_var} \
-                 --with-libprelude-prefix=%{_prefix} \
-                 --with-libpreludedb-prefix=%{_prefix} \
-                 --with-xml-prefix=%{_prefix} \
-                 --with-xml-exec-prefix=%{_prefix}
+autoreconf -fi
+%configure2_5x \
+    --disable-static \
+    --enable-shared \
+    --localstatedir=%{_var} \
+    --with-libprelude-prefix=%{_prefix} \
+    --with-libpreludedb-prefix=%{_prefix} \
+    --with-xml-prefix=%{_prefix} \
+    --with-xml-exec-prefix=%{_prefix}
 
 # fix linkage to the shared wrapper libs
 %{_bindir}/find -name "Makefile" | %{_bindir}/xargs %{__perl} -pi -e "s|^LIBWRAP_LIBS.*|LIBWRAP_LIBS = -L%{_libdir} -lwrap -lnsl|g"
 %{_bindir}/find -name "Makefile" | %{_bindir}/xargs %{__perl} -pi -e "s|-L%{_libdir} %{_libdir}/libwrap\.a -lnsl|-L%{_libdir} -lwrap -lnsl|g"
 
-%{make}
+%make
 
 %install
-%{__rm} -rf %{buildroot}
 
-%{makeinstall_std}
+%makeinstall_std
 
-%{__mkdir_p} %{buildroot}%{_var}/run/%{name}
-%{__mkdir_p} %{buildroot}%{_localstatedir}/lib/%{name}
-%{__mkdir_p} %{buildroot}%{_sysconfdir}/prelude/profile/%{name}
-%{__mkdir_p} %{buildroot}%{_var}/spool/%{name}/scheduler
+install -d %{buildroot}%{_var}/run/%{name}
+install -d %{buildroot}%{_localstatedir}/lib/%{name}
+install -d %{buildroot}%{_sysconfdir}/prelude/profile/%{name}
+install -d %{buildroot}%{_var}/spool/%{name}/scheduler
 
-%{__mkdir_p} %{buildroot}%{_sbindir}
-%{__mv} %{buildroot}%{_bindir}/%{name} %{buildroot}%{_sbindir}/%{name}
+install -d %{buildroot}%{_sbindir}
+mv %{buildroot}%{_bindir}/%{name} %{buildroot}%{_sbindir}/%{name}
 
 %{_bindir}/chrpath -d %{buildroot}%{_libdir}/%{name}/reports/db.so
 
 # install init script
-%{__mkdir_p} %{buildroot}%{_initrddir}
-%{__install} -m 0755 %{SOURCE4} %{buildroot}%{_initrddir}/%{name}
+install -d %{buildroot}%{_initrddir}
+install -m0755 prelude-manager.init %{buildroot}%{_initrddir}/%{name}
 
 # fix logrotate stuff
-%{__mkdir_p} %{buildroot}%{_sysconfdir}/logrotate.d
-%{__cat} > %{buildroot}%{_sysconfdir}/logrotate.d/%{name} << EOF
+install -d %{buildroot}%{_sysconfdir}/logrotate.d
+cat > %{buildroot}%{_sysconfdir}/logrotate.d/%{name} << EOF
 %{_logdir}/%{name}/prelude.log %{_logdir}/%{name}/prelude-xml.log {
     missingok
     postrotate
@@ -155,12 +160,12 @@ Plugins.
 EOF
 
 # make the logdir
-%{__mkdir_p} %{buildroot}%{_logdir}/%{name}
+install -d %{buildroot}%{_logdir}/%{name}
 /bin/touch %{buildroot}%{_logdir}/%{name}/prelude.log
 /bin/touch %{buildroot}%{_logdir}/%{name}/prelude-xml.log
 
 # fix a README.urpmi
-%{__cat} > README.urpmi << EOF
+cat > README.urpmi << EOF
 If you want database support (required for prewikka),
 you should install a preludedb package such as preludedb-mysql and
 then do something like the following:
@@ -170,6 +175,10 @@ echo "GRANT ALL PRIVILEGES ON prelude.* TO prelude@'localhost' IDENTIFIED BY 'pr
 %{_bindir}/mysql -h localhost -u prelude prelude -p < %{_datadir}/libpreludedb/classic/mysql.sql
 %{_bindir}/mysql -h localhost -u prelude prelude -p < %{_datadir}/libpreludedb/classic/addIndices.sql
 EOF
+
+rm -f %{buildroot}%{_libdir}/%{name}/filters/*.*a
+rm -f %{buildroot}%{_libdir}/%{name}/reports/*.*a
+rm -f %{buildroot}%{_libdir}/%{name}/decodes/*.*a
 
 %post
 %create_ghostfile %{_logdir}/prelude-manager/prelude.log prelude-manager prelude-manager 640
@@ -187,11 +196,7 @@ EOF
 %postun
 %_postun_userdel prelude-manager
 
-%clean
-%{__rm} -rf %{buildroot}
-
 %files
-%defattr(0644,root,root,0755)
 %doc AUTHORS COPYING ChangeLog HACKING.README NEWS README README.urpmi
 %attr(0755,root,root) %{_initrddir}/%{name}
 %attr(0755,root,root) %{_sbindir}/%{name}
@@ -220,22 +225,12 @@ EOF
 %{_mandir}/man1/prelude-manager.1*
 
 %files db-plugin
-%defattr(0644,root,root,0755)
 %attr(0755,root,root) %{_libdir}/%{name}/reports/db.so
 
 %files xml-plugin
-%defattr(0644,root,root,0755)
 %attr(0755,root,root) %{_libdir}/%{name}/reports/xmlmod.so
 %{_datadir}/%{name}/xmlmod/idmef-message.dtd
 
 %files devel
-%defattr(0644,root,root,0755)
-%doc AUTHORS COPYING ChangeLog HACKING.README NEWS README
 %dir %{_includedir}/%{name}
 %{_includedir}/%{name}/*.h
-%{_libdir}/%{name}/filters/*.a
-%attr(0755,root,root) %{_libdir}/%{name}/filters/*.la
-%{_libdir}/%{name}/reports/*.a
-%attr(0755,root,root) %{_libdir}/%{name}/reports/*.la
-%{_libdir}/%{name}/decodes/normalize.a
-%attr(0755,root,root) %{_libdir}/%{name}/decodes/normalize.la
