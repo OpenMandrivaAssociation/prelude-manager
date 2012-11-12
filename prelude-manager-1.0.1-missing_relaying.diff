@@ -1,0 +1,431 @@
+diff -Naurp prelude-manager-1.0.2/configure.in prelude-manager-1.0.2.oden/configure.in
+--- prelude-manager-1.0.2/configure.in	2012-06-13 12:22:22.000000000 +0200
++++ prelude-manager-1.0.2.oden/configure.in	2012-07-16 12:49:07.000000000 +0200
+@@ -336,6 +336,7 @@ plugins/filters/thresholding/Makefile
+ plugins/reports/Makefile
+ plugins/reports/db/Makefile
+ plugins/reports/debug/Makefile
++plugins/reports/relaying/Makefile
+ plugins/reports/smtp/Makefile
+ plugins/reports/textmod/Makefile
+ plugins/reports/xmlmod/Makefile
+diff -Naurp prelude-manager-1.0.2/plugins/reports/Makefile.am prelude-manager-1.0.2.oden/plugins/reports/Makefile.am
+--- prelude-manager-1.0.2/plugins/reports/Makefile.am	2012-06-07 15:01:28.000000000 +0200
++++ prelude-manager-1.0.2.oden/plugins/reports/Makefile.am	2012-07-16 12:49:07.000000000 +0200
+@@ -1,3 +1,3 @@
+-SUBDIRS = db debug smtp textmod xmlmod
++SUBDIRS = db debug relaying smtp textmod xmlmod
+ 
+ -include $(top_srcdir)/git.mk
+diff -Naurp prelude-manager-1.0.2/plugins/reports/relaying/Makefile.am prelude-manager-1.0.2.oden/plugins/reports/relaying/Makefile.am
+--- prelude-manager-1.0.2/plugins/reports/relaying/Makefile.am	1970-01-01 01:00:00.000000000 +0100
++++ prelude-manager-1.0.2.oden/plugins/reports/relaying/Makefile.am	2012-07-16 12:49:07.000000000 +0200
+@@ -0,0 +1,10 @@
++AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @LIBPRELUDE_CFLAGS@ 
++AM_CFLAGS = @GLOBAL_CFLAGS@ 
++
++relaying_la_LDFLAGS = -module -avoid-version
++relaying_la_SOURCES = relaying.c
++relayingdir = $(libdir)/prelude-manager/reports
++relaying_LTLIBRARIES = relaying.la
++
++
++-include $(top_srcdir)/git.mk
+diff -Naurp prelude-manager-1.0.2/plugins/reports/relaying/relaying.c prelude-manager-1.0.2.oden/plugins/reports/relaying/relaying.c
+--- prelude-manager-1.0.2/plugins/reports/relaying/relaying.c	1970-01-01 01:00:00.000000000 +0100
++++ prelude-manager-1.0.2.oden/plugins/reports/relaying/relaying.c	2012-07-16 12:49:07.000000000 +0200
+@@ -0,0 +1,193 @@
++/*****
++*
++* Copyright (C) 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
++* Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
++*
++* This file is part of the Prelude-Manager program.
++*
++* This program is free software; you can redistribute it and/or modify
++* it under the terms of the GNU General Public License as published by
++* the Free Software Foundation; either version 2, or (at your option)
++* any later version.
++*
++* This program is distributed in the hope that it will be useful,
++* but WITHOUT ANY WARRANTY; without even the implied warranty of
++* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++* GNU General Public License for more details.
++*
++* You should have received a copy of the GNU General Public License
++* along with this program; see the file COPYING.  If not, write to
++* the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
++*
++*****/
++
++#include "config.h"
++
++#include <stdio.h>
++#include <stdlib.h>
++
++#include "prelude-manager.h"
++
++
++int relaying_LTX_prelude_plugin_version(void);
++int relaying_LTX_manager_plugin_init(prelude_plugin_entry_t *plugin, void *data);
++
++
++typedef struct {
++        prelude_connection_pool_t *conn_pool;
++} relaying_plugin_t;
++
++
++
++static prelude_msgbuf_t *msgbuf = NULL;
++extern prelude_client_t *manager_client;
++
++
++
++static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
++{
++        prelude_connection_pool_t *pool = prelude_msgbuf_get_data(msgbuf);
++
++        prelude_connection_pool_broadcast(pool, msg);
++
++        return 0;
++}
++
++
++
++static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idmef)
++{
++        int ret;
++        relaying_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
++
++        if ( ! plugin->conn_pool )
++                return 0;
++
++        if ( ! msgbuf ) {
++                ret = prelude_msgbuf_new(&msgbuf);
++                if ( ret < 0 )
++                        return ret;
++
++                prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
++        }
++
++        prelude_msgbuf_set_data(msgbuf, plugin->conn_pool);
++
++        idmef_message_write(idmef, msgbuf);
++        prelude_msgbuf_mark_end(msgbuf);
++
++        return 0;
++}
++
++
++
++static int relaying_activate(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
++{
++        relaying_plugin_t *new;
++
++        new = calloc(1, sizeof(*new));
++        if ( ! new )
++                return prelude_error_from_errno(errno);
++
++        prelude_plugin_instance_set_plugin_data(context, new);
++
++        return 0;
++}
++
++
++
++static int relaying_set_manager(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
++{
++        int ret;
++        prelude_client_profile_t *cp;
++        relaying_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
++
++        if ( ! plugin->conn_pool ) {
++                cp = prelude_client_get_profile(manager_client);
++
++                ret = prelude_connection_pool_new(&plugin->conn_pool, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_WRITE);
++                if ( ! plugin->conn_pool )
++                        return ret;
++
++                prelude_connection_pool_set_flags(plugin->conn_pool, prelude_connection_pool_get_flags(plugin->conn_pool)
++                                                  | PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
++                prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
++        }
++
++        ret = prelude_connection_pool_set_connection_string(plugin->conn_pool, optarg);
++        if ( ret < 0 )
++                return ret;
++
++        ret = prelude_connection_pool_init(plugin->conn_pool);
++        if ( ret < 0 )
++                return ret;
++
++        return 0;
++}
++
++
++
++
++static int relaying_get_manager(prelude_option_t *opt, prelude_string_t *out, void *context)
++{
++        relaying_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
++
++        if ( ! plugin->conn_pool )
++                return 0;
++
++        prelude_string_sprintf(out, "%s", prelude_connection_pool_get_connection_string(plugin->conn_pool));
++
++        return 0;
++}
++
++
++
++static void relaying_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
++{
++        relaying_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
++
++        if ( plugin->conn_pool )
++                prelude_connection_pool_destroy(plugin->conn_pool);
++
++        free(plugin);
++}
++
++
++
++int relaying_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
++{
++        int ret;
++        prelude_option_t *opt;
++        static manager_report_plugin_t relaying_plugin;
++        int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
++
++        ret = prelude_option_add(rootopt, &opt, hook, 0, "relaying",
++                                 "Relaying plugin option", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
++                                 relaying_activate, NULL);
++        if ( ret < 0 )
++                return ret;
++
++        prelude_plugin_set_activation_option(pe, opt, NULL);
++
++        ret = prelude_option_add(opt, NULL, hook, 'p', "parent-managers",
++                                 "List of managers address:port pair where messages should be sent to",
++                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, relaying_set_manager, relaying_get_manager);
++        if ( ret < 0 )
++                return ret;
++
++        prelude_plugin_set_name(&relaying_plugin, "Relaying");
++        prelude_plugin_set_destroy_func(&relaying_plugin, relaying_destroy);
++
++        manager_report_plugin_set_running_func(&relaying_plugin, relaying_process);
++
++        prelude_plugin_entry_set_plugin(pe, (void *) &relaying_plugin);
++
++        return 0;
++}
++
++
++
++int relaying_LTX_prelude_plugin_version(void)
++{
++        return PRELUDE_PLUGIN_API_VERSION;
++}
+diff -Naurp prelude-manager-1.0.2/src/Makefile.am prelude-manager-1.0.2.oden/src/Makefile.am
+--- prelude-manager-1.0.2/src/Makefile.am	2012-06-07 15:01:28.000000000 +0200
++++ prelude-manager-1.0.2.oden/src/Makefile.am	2012-07-16 12:49:28.000000000 +0200
+@@ -33,6 +33,7 @@ prelude_manager_LDFLAGS = -export-dynami
+         -dlopen $(top_builddir)/plugins/filters/idmef-criteria/idmef-criteria.la \
+         -dlopen $(top_builddir)/plugins/filters/thresholding/thresholding.la \
+         -dlopen $(top_builddir)/plugins/reports/debug/debug.la \
++        -dlopen $(top_builddir)/plugins/reports/relaying/relaying.la \
+         -dlopen $(top_builddir)/plugins/reports/smtp/smtp.la \
+         -dlopen $(top_builddir)/plugins/reports/textmod/textmod.la \
+         $(DLOPENED_OBJS)
+diff -Naurp prelude-manager-1.0.2/src/manager-options.c prelude-manager-1.0.2.oden/src/manager-options.c
+--- prelude-manager-1.0.2/src/manager-options.c	2012-06-07 15:01:28.000000000 +0200
++++ prelude-manager-1.0.2.oden/src/manager-options.c	2012-07-16 12:49:33.000000000 +0200
+@@ -1,6 +1,6 @@
+ /*****
+ *
+-* Copyright (C) 1999-2012 CS-SI. All Rights Reserved.
++* Copyright (C) 1999-2005,2006,2007 PreludeIDS Technologies. All Rights Reserved.
+ * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
+ *
+ * This file is part of the Prelude-Manager program.
+@@ -45,6 +45,7 @@
+ #include "sensor-server.h"
+ #include "manager-options.h"
+ #include "report-plugins.h"
++#include "reverse-relaying.h"
+ 
+ 
+ #define DEFAULT_MANAGER_ADDR "0.0.0.0"
+@@ -206,6 +207,22 @@ static int add_server_default(void)
+ 
+ 
+ 
++static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
++{
++        int ret;
++
++        if ( config.nserver == 0 ) {
++                ret = add_server_default();
++                if ( ret < 0 )
++                        return -1; /* avoid duplicate option error */
++        }
++
++        return reverse_relay_create_initiator(arg);
++}
++
++
++
++
+ static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+ {
+         int ret;
+@@ -522,6 +539,9 @@ int manager_options_init(prelude_option_
+         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "sched-buffer-size",
+                            NULL, PRELUDE_OPTION_ARGUMENT_REQUIRED, set_sched_buffer_size, NULL);
+ 
++        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
++                           "List of managers address:port pair where messages should be gathered from",
++                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_reverse_relay, NULL);
+         /*
+          * necessary since the reverse relay need to be setup only once one
+          * server object has been created.
+diff -Naurp prelude-manager-1.0.2/src/reverse-relaying.c prelude-manager-1.0.2.oden/src/reverse-relaying.c
+--- prelude-manager-1.0.2/src/reverse-relaying.c	2012-06-07 15:01:28.000000000 +0200
++++ prelude-manager-1.0.2.oden/src/reverse-relaying.c	2012-07-16 12:49:38.000000000 +0200
+@@ -1,6 +1,6 @@
+ /*****
+ *
+-* Copyright (C) 2004-2012 CS-SI. All Rights Reserved.
++* Copyright (C) 2004-2007,2008 PreludeIDS Technologies. All Rights Reserved.
+ * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
+ *
+ * This file is part of the Prelude-Manager program.
+@@ -174,6 +174,18 @@ int reverse_relay_set_receiver_alive(rev
+ 
+ 
+ 
++int reverse_relay_set_initiator_dead(prelude_connection_t *cnx)
++{
++        int ret = -1;
++
++        if ( initiator )
++                ret = prelude_connection_pool_set_connection_dead(initiator, cnx);
++
++        return ret;
++}
++
++
++
+ void reverse_relay_set_receiver_dead(reverse_relay_receiver_t *rrr)
+ {
+         rrr->client = NULL;
+@@ -410,6 +422,42 @@ static void destroy_current_initiator(vo
+ }
+ 
+ 
++
++int reverse_relay_create_initiator(const char *arg)
++{
++        int ret;
++        prelude_client_profile_t *cp;
++
++        cp = prelude_client_get_profile(manager_client);
++
++        if ( initiator )
++                destroy_current_initiator();
++
++        ret = prelude_connection_pool_new(&initiator, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
++        if ( ret < 0 )
++                goto out;
++
++        prelude_connection_pool_set_flags(initiator, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
++        prelude_connection_pool_set_event_handler(initiator, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
++                                                  PRELUDE_CONNECTION_POOL_EVENT_ALIVE, connection_event_cb);
++
++        ret = prelude_connection_pool_set_connection_string(initiator, arg);
++        if ( ret < 0 ) {
++                prelude_connection_pool_destroy(initiator);
++                goto out;
++        }
++
++        ret = prelude_connection_pool_init(initiator);
++        if ( ret < 0 ) {
++                prelude_connection_pool_destroy(initiator);
++                goto out;
++        }
++
++ out:
++        return ret;
++}
++
++
+ 
+ int reverse_relay_init(void)
+ {
+diff -Naurp prelude-manager-1.0.2/src/sensor-server.c prelude-manager-1.0.2.oden/src/sensor-server.c
+--- prelude-manager-1.0.2/src/sensor-server.c	2012-06-07 15:01:28.000000000 +0200
++++ prelude-manager-1.0.2.oden/src/sensor-server.c	2012-07-16 12:49:44.000000000 +0200
+@@ -1,6 +1,6 @@
+ /*****
+ *
+-* Copyright (C) 2001-2012 CS-SI. All Rights Reserved.
++* Copyright (C) 2001-2007,2008 PreludeIDS Technologies. All Rights Reserved.
+ * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
+ *
+ * This file is part of the Prelude-Manager program.
+@@ -546,6 +546,36 @@ out:
+ 
+ 
+ 
++static int do_close_cnx(server_generic_client_t *ptr, sensor_fd_t *cnx)
++{
++        int ret;
++        void *fd_ptr;
++        prelude_error_code_t code;
++
++         do {
++                 ret = prelude_connection_close(cnx->cnx);
++                 if ( ret == 0 )
++                         break;
++
++                 code = prelude_error_get_code(ret);
++                 if ( code == PRELUDE_ERROR_EAGAIN ) {
++
++                         fd_ptr = prelude_io_get_fdptr(prelude_connection_get_fd(cnx->cnx));
++                         if ( fd_ptr && gnutls_record_get_direction(fd_ptr) == 1 )
++                                 server_generic_notify_write_enable(ptr);
++
++                         return -1;
++                 }
++
++                 server_generic_log_client(ptr, PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
++
++         } while ( ret < 0 && ! prelude_io_is_error_fatal(prelude_connection_get_fd(cnx->cnx), ret));
++
++         return 0;
++}
++
++
++
+ static int close_connection_cb(server_generic_client_t *ptr)
+ {
+         int ret;
+@@ -556,6 +586,16 @@ static int close_connection_cb(server_ge
+         if ( cnx->rrr )
+                 reverse_relay_set_receiver_dead(cnx->rrr);
+ 
++        else if ( cnx->cnx ) {
++                cnx->fd = NULL;
++                reverse_relay_set_initiator_dead(cnx->cnx);
++
++                ret = do_close_cnx(ptr, cnx);
++                if ( ret < 0 )
++                        return -1;
++        }
++
++
+         if ( ! prelude_list_is_empty(&cnx->list) )
+                 prelude_list_del(&cnx->list);
+ 
