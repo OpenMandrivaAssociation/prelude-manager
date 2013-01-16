@@ -1,6 +1,6 @@
 Name:           prelude-manager
 Version:        1.0.2
-Release:        1
+Release:        2
 Summary:        Prelude Hybrid Intrusion Detection System Manager
 License:        GPLv2+
 Group:          System/Servers
@@ -10,6 +10,8 @@ Source4:        prelude-manager.init
 # They removed this code and provides it only with their "enterprise" version.
 # Sorry, but this is GPL, so we use the code from v1.0.1
 Patch0:         prelude-manager-1.0.1-missing_relaying.diff
+Patch1:		prelude-manager-automake-1.13.patch
+Patch2:		prelude-manager-1.0.2-glibc-2.17.patch
 Requires:       prelude-tools
 Requires(post): rpm-helper
 Requires(postun): rpm-helper
@@ -107,7 +109,7 @@ Plugins.
 %prep
 
 %setup -q
-%patch0 -p1
+%apply_patches
 %{__perl} -pi -e "s|\@prefix\@%{_logdir}/|%{_logdir}/%{name}/|g" %{name}.conf*
 %{__perl} -pi -e "s|/lib\b|/%{_lib}|g" configure.in
 

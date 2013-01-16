@@ -1,0 +1,14 @@
+--- prelude-manager-1.0.2/configure.in.bero	2013-01-16 02:09:52.857048954 +0100
++++ prelude-manager-1.0.2/configure.in	2013-01-16 02:10:00.630955846 +0100
+@@ -1,8 +1,8 @@
+-AC_INIT
++AC_INIT(prelude-manager, 1.0.2)
+ AC_PREREQ(2.59)
+ AC_CANONICAL_TARGET([])
+-AM_INIT_AUTOMAKE(prelude-manager, 1.0.2)
+-AM_CONFIG_HEADER(config.h)
++AM_INIT_AUTOMAKE
++AC_CONFIG_HEADERS([config.h])
+ AM_DISABLE_STATIC
+ 
+ AM_MAINTAINER_MODE
