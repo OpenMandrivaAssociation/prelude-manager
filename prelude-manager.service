@@ -1,0 +1,12 @@
+[Unit]
+Description=Prelude Event Manager
+After=syslog.target network.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/prelude-manager/prelude-manager.pid
+EnvironmentFile=/etc/sysconfig/network
+ExecStart=/usr/sbin/prelude-manager --daemon --pidfile /var/run/prelude-manager/prelude-manager.pid
+
+[Install]
+WantedBy=multi-user.target

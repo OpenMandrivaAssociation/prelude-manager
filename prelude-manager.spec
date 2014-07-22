@@ -1,12 +1,12 @@
 Summary:	Prelude Hybrid Intrusion Detection System Manager
 Name:		prelude-manager
 Version:	1.0.2
-Release:	9
+Release:	10
 License:	GPLv2+
 Group:		System/Servers
 Url:		http://www.prelude-ids.org/
 Source0:	http://www.prelude-ids.org/download/releases/%{name}/%{name}-%{version}.tar.gz
-Source4:	prelude-manager.init
+Source4:	prelude-manager.service
 # They removed this code and provides it only with their "enterprise" version.
 # Sorry, but this is GPL, so we use the code from v1.0.1
 Patch0:		prelude-manager-1.0.1-missing_relaying.diff
@@ -21,6 +21,7 @@ BuildRequires:	pkgconfig(libprelude)
 BuildRequires:	pkgconfig(libxml-2.0)
 Requires:	prelude-tools
 Requires:	tcp_wrappers
+Requires:	python-prelude
 Requires(post,postun,pre,preun):	rpm-helper
 Obsoletes:	prelude-doc < 1.0.2-7
 %rename		prelude
@@ -40,7 +41,7 @@ and logging.
 
 %files
 %doc AUTHORS COPYING ChangeLog HACKING.README NEWS README README.urpmi
-%attr(0755,root,root) %{_initrddir}/%{name}
+%attr(0755,root,root) %{_unitdir}/%{name}.service
 %attr(0755,root,root) %{_sbindir}/%{name}
 %dir %{_libdir}/%{name}
 %dir %{_libdir}/%{name}/decodes
@@ -171,7 +172,7 @@ Plugins.
 perl -pi -e "s|\@prefix\@%{_logdir}/|%{_logdir}/%{name}/|g" %{name}.conf*
 perl -pi -e "s|/lib\b|/%{_lib}|g" configure.in
 
-cp %{SOURCE4} prelude-manager.init
+cp %{SOURCE4} prelude-manager.service
 autoreconf -fi
 
 %build
@@ -204,8 +205,8 @@ mv %{buildroot}%{_bindir}/%{name} %{buildroot}%{_sbindir}/%{name}
 %{_bindir}/chrpath -d %{buildroot}%{_libdir}/%{name}/reports/db.so
 
 # install init script
-install -d %{buildroot}%{_initrddir}
-install -m0755 prelude-manager.init %{buildroot}%{_initrddir}/%{name}
+install -d %{buildroot}%{_unitdir}
+install -m0755 prelude-manager.service %{buildroot}%{_unitdir}/%{name}.service
 
 # fix logrotate stuff
 install -d %{buildroot}%{_sysconfdir}/logrotate.d
@@ -213,7 +214,7 @@ cat > %{buildroot}%{_sysconfdir}/logrotate.d/%{name} << EOF
 %{_logdir}/%{name}/prelude.log %{_logdir}/%{name}/prelude-xml.log {
     missingok
     postrotate
-        [ -f %{_var}/lock/subsys/%{name} ] && %{_initrddir}/%{name} restart
+        [ -f %{_var}/lock/subsys/%{name} ] && %{_unitdir}/%{name} restart
     endscript
 }
 EOF
