@@ -1,7 +1,7 @@
 Summary:	Prelude Hybrid Intrusion Detection System Manager
 Name:		prelude-manager
 Version:	1.0.2
-Release:	10
+Release:	11
 License:	GPLv2+
 Group:		System/Servers
 Url:		http://www.prelude-ids.org/
@@ -72,16 +72,17 @@ and logging.
 %create_ghostfile %{_logdir}/prelude-manager/prelude-xml.log prelude-manager prelude-manager 640
 [ ! -f %{_sysconfdir}/prelude/profile/%{name}/analyzerid ] && [ -x %{_bindir}/prelude-adduser ] && \
   %{_bindir}/prelude-adduser add prelude-manager --uid `%{__id} -u prelude-manager` --gid `%{__id} -g prelude-manager` >/dev/null 2>&1 || :
-%_post_service %{name}
+%systemd_post %{name}.service
 
 %preun
-%_preun_service %{name}
+%systemd_preun %{name}.service
 
 %pre
 %_pre_useradd prelude-manager %{_localstatedir}/lib/%{name} /bin/false
 
 %postun
 %_postun_userdel prelude-manager
+%systemd_postun_with_restart %{name}.service
 
 #----------------------------------------------------------------------------
 
