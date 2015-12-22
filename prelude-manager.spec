@@ -1,3 +1,5 @@
+%define _disable_rebuild_configure 1
+
 Summary:	Prelude Hybrid Intrusion Detection System Manager
 Name:		prelude-manager
 Version:	1.0.2
