@@ -3,7 +3,7 @@
 Summary:	Prelude Hybrid Intrusion Detection System Manager
 Name:		prelude-manager
 Version:	1.0.2
-Release:	14
+Release:	15
 License:	GPLv2+
 Group:		System/Servers
 Url:		http://www.prelude-ids.org/
