@@ -171,7 +171,7 @@ Plugins.
 
 %prep
 %setup -q
-%apply_patches
+%autopatch -p1
 perl -pi -e "s|\@prefix\@%{_logdir}/|%{_logdir}/%{name}/|g" %{name}.conf*
 perl -pi -e "s|/lib\b|/%{_lib}|g" configure.in
 
