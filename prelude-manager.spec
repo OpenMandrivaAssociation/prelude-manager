@@ -6,7 +6,7 @@ Version:	1.0.2
 Release:	15
 License:	GPLv2+
 Group:		System/Servers
-Url:		http://www.prelude-ids.org/
+Url:		https://www.prelude-ids.org/
 Source0:	http://www.prelude-ids.org/download/releases/%{name}/%{name}-%{version}.tar.gz
 Source4:	prelude-manager.service
 # They removed this code and provides it only with their "enterprise" version.
