@@ -14,6 +14,11 @@ Source4:	prelude-manager.service
 Patch0:		prelude-manager-1.0.1-missing_relaying.diff
 Patch1:		prelude-manager-automake-1.13.patch
 Patch2:		prelude-manager-1.0.2-glibc-2.17.patch
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	libtool-base
+BuildRequires:	slibtool
+BuildRequires:	make
 BuildRequires:	chrpath
 BuildRequires:	libtool
 BuildRequires:	preludedb-devel
